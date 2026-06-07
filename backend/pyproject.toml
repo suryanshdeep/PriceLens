@@ -1,0 +1,41 @@
+[project]
+name = "pricelens-backend"
+version = "0.1.0"
+description = "FastAPI and ML backend for PriceLens."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "python-multipart>=0.0.9",
+  "pydantic-settings>=2.4.0",
+  "pandas>=2.2.0",
+  "numpy>=1.26.0",
+  "scikit-learn>=1.5.0",
+  "joblib>=1.4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.5.0",
+  "mypy>=1.10.0",
+  "ipykernel>=6.29.0",
+  "matplotlib>=3.9.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
