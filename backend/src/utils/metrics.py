@@ -13,7 +13,7 @@ def mae(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
 
 def rmse(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    return float(mean_squared_error(y_true, y_pred, squared=False))
+    return float(np.sqrt(mean_squared_error(y_true, y_pred)))
 
 
 def r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
