@@ -85,16 +85,23 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ## ML Workflow
 
-Start in `notebooks/01_text_baseline_demo.ipynb`. Once the notebook workflow is stable,
-promote it into scripts under `backend/src/data`, `backend/src/features`, and
+Start in `notebooks/01_text_baseline_demo.ipynb` for exploration. The Phase 2 production
+baseline scripts now live under `backend/src/data`, `backend/src/features`, and
 `backend/src/models`.
 
-Target command style after promotion:
+Train and evaluate the first text baseline:
 
 ```powershell
-cd backend
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
 python -m src.models.train_baseline
 python -m src.models.evaluate
+```
+
+For a faster smoke run while developing:
+
+```powershell
+python -m src.models.train_baseline --sample-size 20000
 ```
 
 For details, see [docs/model.md](docs/model.md).

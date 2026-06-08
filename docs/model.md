@@ -120,7 +120,7 @@ until the explanation quality is good enough.
 
 ## Script Promotion Plan
 
-After the notebook is stable, promote code into:
+Phase 2 promotes the notebook flow into:
 
 ```text
 backend/src/data/load_data.py
@@ -132,14 +132,45 @@ backend/src/models/predict.py
 backend/src/models/evaluate.py
 ```
 
-Target commands:
+## Production Commands
+
+Train on the full local training set:
 
 ```powershell
 cd D:\PriceLens\backend
 .\.venv\Scripts\Activate.ps1
 python -m src.models.train_baseline
+```
+
+Run a faster development smoke train:
+
+```powershell
+python -m src.models.train_baseline --sample-size 20000
+```
+
+Evaluate the saved artifact:
+
+```powershell
 python -m src.models.evaluate
 ```
+
+Run a one-off command-line prediction:
+
+```powershell
+python -m src.models.predict "Organic almond butter 16 oz jar"
+```
+
+## Backend Artifact Behavior
+
+The FastAPI backend tries to load:
+
+```text
+models/text_baseline_pipeline.joblib
+models/baseline_metadata.json
+```
+
+If both files exist and can be loaded, `/predict` uses the trained TF-IDF + Ridge model. If either
+file is missing or unloadable, the API falls back to mock prediction so the frontend remains usable.
 
 ## Image Modeling Boundary
 
@@ -166,9 +197,8 @@ dataset.
 
 ## Next Model Milestones
 
-- Run the notebook against local `train.csv`.
-- Decide cleaning rules after inspecting bad rows.
-- Promote stable notebook logic into scripts.
-- Save the first real `joblib` artifact.
-- Connect FastAPI `/predict` to the trained artifact.
+- Run `train_baseline` against local `train.csv`.
+- Inspect `reports/baseline_metrics.md`.
+- Compare full-data metrics against smoke-run metrics.
+- Add structured quantity/unit extraction features.
 - Add backend tests for real inference fallback behavior.

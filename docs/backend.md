@@ -5,8 +5,9 @@ This document tracks the FastAPI service, API contract, backend setup, and devel
 ## Purpose
 
 The backend exposes prediction APIs for the React app and later hosts the trained model artifacts.
-Right now it returns mock predictions so the full-stack flow can be tested before ML artifacts are
-ready.
+It returns mock predictions when model artifacts are missing. After `python -m
+src.models.train_baseline` creates artifacts under `models/`, the API loads the trained baseline
+automatically on startup.
 
 ## Technology
 
@@ -105,7 +106,12 @@ Example response:
 
 ### `GET /model-info`
 
-Returns current model metadata. It currently reports a mock baseline.
+Returns current model metadata.
+
+Important fields:
+
+- `artifact_available`: `false` when using mock fallback, `true` when trained artifacts are loaded
+- `metrics`: validation metrics from model metadata when available
 
 ### `POST /predict`
 
@@ -148,8 +154,9 @@ Form fields:
 - `category`
 - `image`
 
-The first version accepts the image and records that it was received. The model does not use image
-features yet.
+The first version accepts the image and records that it was received. The text baseline does not use
+image features yet. When a trained text artifact is loaded, image uploads are marked as
+`image_received_not_modeled` in `features_used`.
 
 ## Configuration
 
@@ -171,6 +178,43 @@ pytest
 
 Current tests validate the API contract for `/health` and `/predict`.
 
+## Training Commands
+
+Train the first real text baseline:
+
+```powershell
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
+python -m src.models.train_baseline
+```
+
+Faster smoke run:
+
+```powershell
+python -m src.models.train_baseline --sample-size 20000
+```
+
+Evaluate the saved artifact:
+
+```powershell
+python -m src.models.evaluate
+```
+
+Try one command-line prediction:
+
+```powershell
+python -m src.models.predict "Organic almond butter 16 oz jar"
+```
+
+Generated files:
+
+```text
+models/text_baseline_pipeline.joblib
+models/baseline_metadata.json
+reports/baseline_metrics.md
+reports/evaluation_metrics.md
+```
+
 ## Development Rules
 
 - Keep API schemas in `src/api/schemas.py`.
@@ -183,7 +227,5 @@ Current tests validate the API contract for `/health` and `/predict`.
 
 ## Next Backend Milestones
 
-- Load trained model artifacts from `models/`.
-- Replace mock prediction with real TF-IDF + Ridge inference.
 - Add a metrics endpoint after baseline metrics are generated.
 - Add structured logging for explanation tokens and prediction metadata.

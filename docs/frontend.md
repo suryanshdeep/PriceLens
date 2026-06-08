@@ -112,6 +112,9 @@ Functions:
 - No image: `POST /predict` with JSON
 - With image: `POST /predict-with-image` with multipart form data
 
+`getModelInfo()` now receives `artifact_available` and optional validation `metrics`, so the UI can
+later show whether predictions are coming from the mock fallback or the trained baseline artifact.
+
 ## UI Behavior
 
 The Predict page includes:
@@ -151,5 +154,6 @@ npm run build
 - Add backend health indicator in the navbar or Predict page.
 - Add loading and retry states for model metadata.
 - Display real metrics when the backend exposes them.
+- Show trained-vs-mock model state from `/model-info`.
 - Add image preview for uploaded product images.
 - Add similar product result cards backed by FAISS later.
