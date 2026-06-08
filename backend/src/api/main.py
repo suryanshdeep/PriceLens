@@ -33,13 +33,7 @@ def health() -> HealthResponse:
 
 @app.get("/model-info", response_model=ModelInfoResponse)
 def model_info() -> ModelInfoResponse:
-    return ModelInfoResponse(
-        model_version=settings.model_version,
-        model_type="mock_text_baseline",
-        status="mock_until_artifacts_are_trained",
-        supports_images=True,
-        features=["catalog_content", "brand", "category", "image"],
-    )
+    return ModelInfoResponse(**service.model_info())
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -52,7 +46,7 @@ async def predict_json(payload: PredictionRequest) -> PredictionResponse:
     return PredictionResponse(
         predicted_price=result.predicted_price,
         confidence_band=ConfidenceBand(low=result.low, high=result.high),
-        model_version=settings.model_version,
+        model_version=result.model_version,
         features_used=result.features_used,
         explanation_tokens=result.explanation_tokens,
         image_received=False,
@@ -75,7 +69,7 @@ async def predict_with_image(
     return PredictionResponse(
         predicted_price=result.predicted_price,
         confidence_band=ConfidenceBand(low=result.low, high=result.high),
-        model_version=settings.model_version,
+        model_version=result.model_version,
         features_used=result.features_used,
         explanation_tokens=result.explanation_tokens,
         image_received=image is not None,

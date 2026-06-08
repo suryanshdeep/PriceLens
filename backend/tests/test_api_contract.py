@@ -28,3 +28,13 @@ def test_predict_json_contract() -> None:
     assert body["confidence_band"]["low"] < body["predicted_price"]
     assert body["confidence_band"]["high"] > body["predicted_price"]
     assert "catalog_content" in body["features_used"]
+
+
+def test_model_info_contract() -> None:
+    response = client.get("/model-info")
+    body = response.json()
+
+    assert response.status_code == 200
+    assert "model_version" in body
+    assert "model_type" in body
+    assert "artifact_available" in body

@@ -27,6 +27,8 @@ class ModelInfoResponse(BaseModel):
     status: str
     supports_images: bool
     features: list[str]
+    artifact_available: bool = False
+    metrics: dict[str, float] | None = None
 
 
 class HealthResponse(BaseModel):

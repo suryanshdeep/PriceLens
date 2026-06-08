@@ -1,8 +1,10 @@
 import logging
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from src.config import get_settings
+from src.models.predict import BaselinePricePredictor
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +18,38 @@ class PredictionResult:
     high: float
     features_used: list[str]
     explanation_tokens: list[str]
+    model_version: str
+    model_type: str
+    is_mock: bool
 
 
 class PricePredictionService:
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.predictor = self._load_predictor()
+
+    def model_info(self) -> dict[str, Any]:
+        if self.predictor is None:
+            return {
+                "model_version": self.settings.model_version,
+                "model_type": "mock_text_baseline",
+                "status": "mock_until_artifacts_are_trained",
+                "supports_images": True,
+                "features": ["catalog_content", "brand", "category", "image"],
+                "artifact_available": False,
+                "metrics": None,
+            }
+
+        metadata = self.predictor.metadata
+        return {
+            "model_version": str(metadata.get("model_version", "text_tfidf_ridge_v1")),
+            "model_type": str(metadata.get("model_type", "tfidf_ridge_log_price")),
+            "status": "trained_artifact_loaded",
+            "supports_images": True,
+            "features": list(metadata.get("features", ["catalog_content"])),
+            "artifact_available": True,
+            "metrics": metadata.get("metrics", {}).get("validation"),
+        }
 
     def predict(
         self,
@@ -30,6 +59,31 @@ class PricePredictionService:
         category: str | None = None,
         image_filename: str | None = None,
     ) -> PredictionResult:
+        if self.predictor is not None:
+            prediction = self.predictor.predict(catalog_content)
+            logger.info(
+                "Model prediction generated",
+                extra={
+                    "model_version": self.predictor.metadata.get("model_version"),
+                    "features_used": self.predictor.metadata.get("features", ["catalog_content"]),
+                    "explanation_tokens": prediction.explanation_tokens,
+                    "image_filename": image_filename,
+                },
+            )
+            features_used = list(self.predictor.metadata.get("features", ["catalog_content"]))
+            if image_filename:
+                features_used.append("image_received_not_modeled")
+            return PredictionResult(
+                predicted_price=prediction.predicted_price,
+                low=prediction.low,
+                high=prediction.high,
+                features_used=features_used,
+                explanation_tokens=prediction.explanation_tokens,
+                model_version=str(self.predictor.metadata.get("model_version", "text_tfidf_ridge_v1")),
+                model_type=str(self.predictor.metadata.get("model_type", "tfidf_ridge_log_price")),
+                is_mock=False,
+            )
+
         tokens = self._explanation_tokens(catalog_content)
         token_signal = min(len(tokens), 18)
         brand_signal = 2.0 if brand else 0.0
@@ -63,6 +117,9 @@ class PricePredictionService:
             high=round(predicted_price + spread, 2),
             features_used=features_used,
             explanation_tokens=tokens,
+            model_version=self.settings.model_version,
+            model_type="mock_text_baseline",
+            is_mock=True,
         )
 
     @staticmethod
@@ -75,3 +132,14 @@ class PricePredictionService:
                 continue
             unique_tokens.append(token)
         return unique_tokens[:8]
+
+    @staticmethod
+    def _load_predictor() -> BaselinePricePredictor | None:
+        try:
+            return BaselinePricePredictor.from_artifacts()
+        except FileNotFoundError:
+            logger.info("Baseline model artifacts not found; using mock prediction fallback")
+            return None
+        except Exception:
+            logger.exception("Could not load baseline model artifacts; using mock prediction fallback")
+            return None
