@@ -23,6 +23,8 @@ export type ModelInfo = {
   status: string;
   supports_images: boolean;
   features: string[];
+  artifact_available: boolean;
+  metrics: Record<string, number> | null;
 };
 
 export type HealthResponse = {
