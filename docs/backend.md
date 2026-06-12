@@ -200,6 +200,14 @@ Evaluate the saved artifact:
 python -m src.models.evaluate
 ```
 
+Build image metadata features and train the image-aware baseline:
+
+```powershell
+python -m src.data.build_image_feature_cache --split train
+python -m src.models.train_image_baseline --sample-size 10000 --max-features 20000
+python -m src.models.train_image_baseline
+```
+
 Try one command-line prediction:
 
 ```powershell

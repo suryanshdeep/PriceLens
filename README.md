@@ -104,4 +104,19 @@ For a faster smoke run while developing:
 python -m src.models.train_baseline --sample-size 20000
 ```
 
+Phase 3A enhanced text baseline:
+
+```powershell
+python -m src.models.train_enhanced_baseline --sample-size 10000 --max-features 20000
+python -m src.models.train_enhanced_baseline
+```
+
+Phase 3B lightweight image metadata baseline:
+
+```powershell
+python -m src.data.build_image_feature_cache --split train
+python -m src.models.train_image_baseline --sample-size 10000 --max-features 20000
+python -m src.models.train_image_baseline
+```
+
 For details, see [docs/model.md](docs/model.md).

@@ -197,8 +197,97 @@ dataset.
 
 ## Next Model Milestones
 
-- Run `train_baseline` against local `train.csv`.
-- Inspect `reports/baseline_metrics.md`.
-- Compare full-data metrics against smoke-run metrics.
-- Add structured quantity/unit extraction features.
+- Run `train_enhanced_baseline` against local `train.csv`.
+- Inspect `reports/enhanced_baseline_metrics.md`.
+- Compare TF-IDF Ridge against TF-IDF + structured feature Ridge.
+- Use saved validation/test prediction CSVs as the first ensemble-ready outputs.
 - Add backend tests for real inference fallback behavior.
+
+## Phase 3A: Structured Text Features
+
+The Phase 3A notebook is:
+
+```text
+notebooks/02_structured_text_features.ipynb
+```
+
+It explores signals parsed from mixed `catalog_content`, including:
+
+- pack count
+- size value
+- unit/size presence
+- text length
+- word count
+- number count
+- premium keyword count
+- unique word ratio
+
+Run a smoke train:
+
+```powershell
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
+python -m src.models.train_enhanced_baseline --sample-size 10000 --max-features 20000
+```
+
+Run the full enhanced baseline:
+
+```powershell
+python -m src.models.train_enhanced_baseline
+```
+
+Generated local artifacts:
+
+```text
+models/text_structured_ridge_pipeline.joblib
+models/text_structured_ridge_metadata.json
+models/predictions/validation_text_structured_ridge.csv
+models/predictions/test_text_structured_ridge.csv
+reports/enhanced_baseline_metrics.md
+```
+
+## Phase 3B: Lightweight Image Metadata Features
+
+Before deep image embeddings, Phase 3B uses cheap image metadata:
+
+- image exists flag
+- width
+- height
+- aspect ratio
+- file size
+- grayscale brightness mean
+- grayscale brightness standard deviation
+
+Build the image feature cache:
+
+```powershell
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
+python -m src.data.build_image_feature_cache --split train
+```
+
+Run a smoke image-aware train:
+
+```powershell
+python -m src.models.train_image_baseline --sample-size 10000 --max-features 20000
+```
+
+Run the full image-aware baseline:
+
+```powershell
+python -m src.models.train_image_baseline
+```
+
+Generated local artifacts:
+
+```text
+data/processed/train_image_features.csv
+models/text_structured_image_ridge_pipeline.joblib
+models/text_structured_image_ridge_metadata.json
+models/predictions/validation_text_structured_image_ridge.csv
+models/predictions/test_text_structured_image_ridge.csv
+reports/image_baseline_metrics.md
+```
+
+This phase does not use neural image embeddings yet. It is a low-cost signal check before CLIP/ViT
+features.

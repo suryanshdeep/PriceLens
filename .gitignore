@@ -33,6 +33,7 @@ models/*
 !models/.gitkeep
 reports/*
 !reports/.gitkeep
+models/predictions/*
 
 *.joblib
 *.pkl
