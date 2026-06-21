@@ -119,4 +119,13 @@ python -m src.models.train_image_baseline --sample-size 10000 --max-features 200
 python -m src.models.train_image_baseline
 ```
 
+Phase 4A model comparison and ensemble scaffold:
+
+```powershell
+python -m src.models.compare_models
+python -m src.models.ensemble --split validation
+python -m src.models.ensemble --split test
+python -m src.models.optimize_ensemble --split validation
+```
+
 For details, see [docs/model.md](docs/model.md).

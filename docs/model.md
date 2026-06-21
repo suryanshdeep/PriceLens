@@ -291,3 +291,68 @@ reports/image_baseline_metrics.md
 
 This phase does not use neural image embeddings yet. It is a low-cost signal check before CLIP/ViT
 features.
+
+## Phase 4A: Model Comparison And Ensemble Scaffold
+
+Phase 4A creates a reusable structure for comparing model metrics and blending prediction files.
+This is intentionally model-agnostic so later transformer and image-embedding predictions can use
+the same CSV format.
+
+Prediction CSV contract:
+
+```text
+sample_id,actual_price,predicted_price
+```
+
+Generate the model comparison report:
+
+```powershell
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
+python -m src.models.compare_models
+```
+
+This writes:
+
+```text
+reports/model_comparison.md
+```
+
+Run equal-weight blending over the existing structured and image-metadata baselines:
+
+```powershell
+python -m src.models.ensemble --split validation
+python -m src.models.ensemble --split test
+```
+
+Optimize validation weights:
+
+```powershell
+python -m src.models.optimize_ensemble --split validation
+```
+
+Generated local outputs:
+
+```text
+models/predictions/validation_ensemble_equal_weight.csv
+models/predictions/test_ensemble_equal_weight.csv
+reports/ensemble_equal_weight_validation_metrics.md
+reports/ensemble_equal_weight_test_metrics.md
+models/ensemble_optimized_validation_weights.json
+models/predictions/validation_ensemble_optimized.csv
+reports/ensemble_optimized_validation_metrics.md
+```
+
+Custom weights can be passed in model-file order:
+
+```powershell
+python -m src.models.ensemble --split validation --weights 0.7 0.3
+```
+
+For the current two very similar baseline models, optimized weights will likely favor the structured
+text model almost entirely. The optimizer becomes more useful once transformer prediction files are
+added in Phase 4B.
+
+When transformer models are added, their validation/test prediction files should be dropped into
+`models/predictions/` using the same CSV schema, then passed with repeated `--prediction-file`
+arguments.
