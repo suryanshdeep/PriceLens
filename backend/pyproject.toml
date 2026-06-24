@@ -26,6 +26,11 @@ dev = [
   "matplotlib>=3.9.0",
 ]
 
+transformers = [
+  "sentence-transformers>=3.0.0",
+  "torch>=2.2.0",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
