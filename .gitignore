@@ -34,6 +34,7 @@ models/*
 reports/*
 !reports/.gitkeep
 models/predictions/*
+models/embeddings/*
 
 *.joblib
 *.pkl
