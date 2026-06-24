@@ -356,3 +356,55 @@ added in Phase 4B.
 When transformer models are added, their validation/test prediction files should be dropped into
 `models/predictions/` using the same CSV schema, then passed with repeated `--prediction-file`
 arguments.
+
+## Phase 4B: Transformer Text Embeddings
+
+Phase 4B adds a reusable transformer embedding path. It starts with SentenceTransformers because
+that gives fixed-size product text embeddings that can be cached and reused by Ridge/CatBoost-style
+models.
+
+Install optional transformer dependencies:
+
+```powershell
+cd D:\PriceLens\backend
+.\.venv\Scripts\Activate.ps1
+pip install --no-cache-dir -e .[transformers]
+```
+
+Build a training embedding cache:
+
+```powershell
+python -m src.data.build_text_embedding_cache --split train --model-name sentence-transformers/all-MiniLM-L6-v2 --batch-size 64
+```
+
+Train Ridge on cached embeddings:
+
+```powershell
+python -m src.models.train_transformer_baseline `
+  --embedding-cache-path D:\PriceLens\models\embeddings\train_sentence-transformers__all-MiniLM-L6-v2.npz `
+  --model-label minilm_text_ridge
+```
+
+Generated local artifacts:
+
+```text
+models/embeddings/train_sentence-transformers__all-MiniLM-L6-v2.npz
+models/minilm_text_ridge.joblib
+models/minilm_text_ridge_metadata.json
+models/predictions/validation_minilm_text_ridge.csv
+models/predictions/test_minilm_text_ridge.csv
+reports/minilm_text_ridge_metrics.md
+```
+
+After generating transformer prediction files, rerun:
+
+```powershell
+python -m src.models.compare_models
+python -m src.models.optimize_ensemble `
+  --split validation `
+  --prediction-file D:\PriceLens\models\predictions\validation_text_structured_ridge.csv `
+  --prediction-file D:\PriceLens\models\predictions\validation_minilm_text_ridge.csv
+```
+
+Heavier models such as BERT/DeBERTa/RoBERTa can use the same cache/train pattern by changing
+`--model-name` and `--model-label`.
