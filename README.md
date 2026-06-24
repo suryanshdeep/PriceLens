@@ -128,4 +128,12 @@ python -m src.models.ensemble --split test
 python -m src.models.optimize_ensemble --split validation
 ```
 
+Phase 4B transformer text embeddings:
+
+```powershell
+pip install --no-cache-dir -e .[transformers]
+python -m src.data.build_text_embedding_cache --split train --model-name sentence-transformers/all-MiniLM-L6-v2 --batch-size 64
+python -m src.models.train_transformer_baseline --embedding-cache-path D:\PriceLens\models\embeddings\train_sentence-transformers__all-MiniLM-L6-v2.npz --model-label minilm_text_ridge
+```
+
 For details, see [docs/model.md](docs/model.md).
