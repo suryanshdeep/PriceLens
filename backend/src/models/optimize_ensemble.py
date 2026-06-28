@@ -7,11 +7,12 @@ import numpy as np
 from src.models.artifacts import models_dir, reports_dir
 from src.models.ensemble import (
     EnsembleResult,
-    blend_prediction_files,
     default_prediction_files,
+    _load_and_merge_predictions,
     write_ensemble_outputs,
 )
 from src.models.reporting import write_json
+from src.utils.metrics import mae, r2, rmse, smape
 
 
 def optimize_ensemble_weights(
@@ -21,24 +22,41 @@ def optimize_ensemble_weights(
     random_trials: int = 5000,
     random_state: int = 42,
 ) -> EnsembleResult:
-    if len(prediction_files) == 2:
-        candidates = _two_model_grid(step)
-    else:
-        candidates = _random_weight_candidates(
+    merged = _load_and_merge_predictions(prediction_files)
+    prediction_columns = [f"predicted_price_{index}" for index in range(len(prediction_files))]
+    prediction_matrix = merged[prediction_columns].to_numpy(dtype=float)
+    y_true = merged["actual_price"].to_numpy(dtype=float)
+    candidates = (
+        _simplex_grid(model_count=len(prediction_files), step=step)
+        if len(prediction_files) <= 3
+        else _random_weight_candidates(
             model_count=len(prediction_files),
             trials=random_trials,
             random_state=random_state,
         )
+    )
 
-    best_result: EnsembleResult | None = None
+    best_weights: np.ndarray | None = None
+    best_metrics: dict[str, float] | None = None
     for weights in candidates:
-        result = blend_prediction_files(prediction_files, weights=list(weights))
-        if best_result is None or result.metrics["smape"] < best_result.metrics["smape"]:
-            best_result = result
+        y_pred = np.clip(prediction_matrix @ np.asarray(weights), a_min=0, a_max=None)
+        metrics = _metric_dict(y_true, y_pred)
+        if best_metrics is None or metrics["smape"] < best_metrics["smape"]:
+            best_metrics = metrics
+            best_weights = np.asarray(weights)
 
-    if best_result is None:
+    if best_weights is None or best_metrics is None:
         raise ValueError("No ensemble candidates were evaluated")
-    return best_result
+
+    merged["predicted_price"] = np.clip(prediction_matrix @ best_weights, a_min=0, a_max=None)
+    return EnsembleResult(
+        weights={
+            path.stem: float(weight)
+            for path, weight in zip(prediction_files, best_weights, strict=True)
+        },
+        metrics=best_metrics,
+        predictions=merged[["sample_id", "actual_price", "predicted_price"]],
+    )
 
 
 def save_optimized_weights(
@@ -67,6 +85,23 @@ def _two_model_grid(step: float) -> Iterable[tuple[float, float]]:
         yield (first, 1.0 - first)
 
 
+def _simplex_grid(*, model_count: int, step: float) -> Iterable[np.ndarray]:
+    if model_count == 2:
+        yield from (np.asarray(weights) for weights in _two_model_grid(step))
+        return
+    if model_count != 3:
+        raise ValueError("Grid search only supports two or three models")
+    if step <= 0 or step > 1:
+        raise ValueError("step must be in the range (0, 1]")
+    count = int(round(1 / step))
+    for first_index in range(count + 1):
+        first = min(first_index * step, 1.0)
+        for second_index in range(count + 1 - first_index):
+            second = min(second_index * step, 1.0 - first)
+            third = 1.0 - first - second
+            yield np.asarray([first, second, third])
+
+
 def _random_weight_candidates(
     *,
     model_count: int,
@@ -81,9 +116,18 @@ def _random_weight_candidates(
         yield rng.dirichlet(np.ones(model_count))
 
 
+def _metric_dict(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    return {
+        "smape": smape(y_true, y_pred),
+        "mae": mae(y_true, y_pred),
+        "rmse": rmse(y_true, y_pred),
+        "r2": r2(y_true, y_pred),
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Optimize ensemble weights on prediction CSVs.")
-    parser.add_argument("--split", choices=["validation", "test"], default="validation")
+    parser.add_argument("--split", choices=["train", "validation", "test"], default="validation")
     parser.add_argument("--name", default="ensemble_optimized")
     parser.add_argument("--step", type=float, default=0.01)
     parser.add_argument("--random-trials", type=int, default=5000)

@@ -117,7 +117,7 @@ def _normalize_weights(weights: list[float]) -> list[float]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Blend PriceLens prediction CSV files.")
-    parser.add_argument("--split", choices=["validation", "test"], default="validation")
+    parser.add_argument("--split", choices=["train", "validation", "test"], default="validation")
     parser.add_argument("--name", default="ensemble_equal_weight")
     parser.add_argument("--weights", nargs="*", type=float, default=None)
     parser.add_argument("--prediction-file", action="append", type=Path, dest="prediction_files")
